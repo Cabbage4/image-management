@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户操作日志 - Image Management</title>
+    <link rel="stylesheet" href="styles.css?v=4">
+    <script type="module" src="operation_logs.js?v=2" defer></script>
+</head>
+<body class="app-shell">
+    <main class="dashboard-shell">
+        <header class="topbar">
+            <div class="topbar-title">
+                <h1>用户操作日志</h1>
+                <p>集中查看系统内用户的关键操作行为，支持关键词、状态和时间筛选。</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="dashboard.html" class="button-link">用户中心</a>
+                <a href="gallery.html" class="button-link">图片管理</a>
+                <a href="trash.html" class="button-link">回收站</a>
+                <button type="button" class="ghost-button" id="logout-button">退出登录</button>
+            </div>
+        </header>
+
+        <section class="panel log-page-panel">
+            <div class="log-retention-note" id="log-retention-note">系统默认仅保留近 6 个月的操作日志，超期记录会自动清空。</div>
+            <div class="log-filter-bar">
+                <div class="input-shell log-search-shell">
+                    <span class="input-icon">⌕</span>
+                    <input id="log-search" type="text" placeholder="搜索用户名、操作内容、模块关键词...">
+                </div>
+                <div class="select-shell log-filter-select">
+                    <select id="log-action-filter">
+                        <option value="">全部类型</option>
+                        <option value="创建账号">创建账号</option>
+                        <option value="上传图片">上传图片</option>
+                        <option value="编辑图片">编辑图片</option>
+                        <option value="保存编辑副本">保存编辑副本</option>
+                        <option value="删除图片">删除图片</option>
+                        <option value="批量删除图片">批量删除图片</option>
+                        <option value="批量移动图片">批量移动图片</option>
+                        <option value="新建文件夹">新建文件夹</option>
+                        <option value="删除文件夹">删除文件夹</option>
+                        <option value="恢复文件夹">恢复文件夹</option>
+                        <option value="恢复图片">恢复图片</option>
+                        <option value="更新回收站配置">更新回收站配置</option>
+                    </select>
+                </div>
+                <div class="select-shell log-filter-select">
+                    <select id="log-time-filter">
+                        <option value="">全部时间</option>
+                        <option value="today">今天</option>
+                        <option value="3d">近 3 天</option>
+                        <option value="7d">近 7 天</option>
+                    </select>
+                </div>
+                <button type="button" class="secondary-button" id="export-logs">导出日志</button>
+                <button type="button" class="ghost-button" id="reset-log-filters">重置</button>
+            </div>
+
+            <div class="log-table-wrap">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>操作时间</th>
+                            <th>操作类型</th>
+                            <th>IP 地址</th>
+                            <th>IP 城市</th>
+                            <th>详情</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table-body"></tbody>
+                </table>
+            </div>
+            <div class="log-footer">
+                <span id="log-count">共 0 条记录</span>
+                <div class="gallery-pagination-actions">
+                    <button type="button" class="ghost-button" id="log-prev-page">上一页</button>
+                    <span id="log-page-indicator">第 1 / 1 页</span>
+                    <button type="button" class="ghost-button" id="log-next-page">下一页</button>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

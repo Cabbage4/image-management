@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户信息 - Image Management</title>
+    <link rel="stylesheet" href="styles.css?v=3">
+    <script type="module" src="dashboard.js?v=6" defer></script>
+</head>
+<body class="app-shell">
+    <main class="dashboard-shell">
+        <header class="topbar">
+            <div class="topbar-title">
+                <h1>用户管理中心</h1>
+                <p>根据最新设计稿重构的个人资料页，包含资料、通知偏好、安全与最近活动。</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="gallery.html" class="button-link">图片管理</a>
+                <a href="operation_logs.html" class="button-link">用户操作日志</a>
+                <a href="trash.html" class="button-link">回收站</a>
+                <button type="button" class="ghost-button" id="logout-button">退出登录</button>
+            </div>
+        </header>
+
+        <section class="profile-layout">
+            <aside class="profile-sidebar">
+                <div class="avatar-wrap">
+                    <label class="avatar avatar-editable" id="profile-avatar" for="profile-avatar-input">
+                        <img id="profile-avatar-image" class="avatar-image hidden" alt="用户头像">
+                        <span class="avatar-hover-hint">点击更改头像</span>
+                        <span class="avatar-fallback-text">用</span>
+                    </label>
+                    <input id="profile-avatar-input" type="file" accept="image/*" hidden>
+                    <div>
+                        <h2 class="profile-name" id="profile-name">示例用户</h2>
+                    </div>
+                    <span class="badge" id="profile-status">已验证账户</span>
+                </div>
+
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">最近上传</span>
+                        <span class="stat-value" id="stat-uploads">18</span>
+                    </div>
+                </div>
+
+                <div class="info-list">
+                    <div class="info-item">
+                        <span class="label">邮箱地址</span>
+                        <span class="value" id="sidebar-email">example@example.com</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">最近登录</span>
+                        <span class="value" id="sidebar-last-login">2026-03-21 09:30</span>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="profile-main">
+                <div class="hero-banner">
+                    <h2>个人资料与安全设置</h2>
+                    <p>统一管理用户名、邮箱、头像、通知偏好与安全设置。关键交互按设计稿调整为顶部横幅 + 标签页 + 卡片化表单。</p>
+                    <div class="hero-chips">
+                        <span class="hero-chip">资料编辑</span>
+                        <span class="hero-chip">通知偏好</span>
+                        <span class="hero-chip">安全设置</span>
+                        <span class="hero-chip">最近活动</span>
+                    </div>
+                </div>
+
+                <div class="content-stack">
+                    <div class="tabs" role="tablist">
+                        <button class="tab-button active" data-tab="profile" type="button">基本资料</button>
+                        <button class="tab-button" data-tab="preferences" type="button">通知偏好</button>
+                        <button class="tab-button" data-tab="security" type="button">安全设置</button>
+                        <button class="tab-button" data-tab="activity" type="button">最近活动</button>
+                    </div>
+
+                    <section class="tab-panel active" id="tab-profile">
+                        <div class="panel-header">
+                            <div>
+                                <h3>基本信息</h3>
+                                <p>展示并编辑用户的基础资料、昵称、角色、描述信息。布局参考你补充的“用户信息基本界面”。</p>
+                            </div>
+                        </div>
+
+                        <form id="profile-form">
+                            <div class="profile-form-grid">
+                                <div class="form-group full">
+                                    <label for="profile-bio">个人简介</label>
+                                    <div class="textarea-shell">
+                                        <textarea id="profile-bio" name="profile-bio" placeholder="补充你的团队职责、擅长方向或工作备注">负责团队资源管理、用户权限协调和图片资产审核流程。</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel-actions">
+                                <button type="button" class="ghost-button">取消修改</button>
+                                <button type="submit" class="primary-button" style="width:auto;">保存资料</button>
+                            </div>
+                            <div id="profile-message" class="status-message"></div>
+                        </form>
+                    </section>
+
+                    <section class="tab-panel" id="tab-preferences">
+                        <div class="panel-header">
+                            <div>
+                                <h3>通知偏好</h3>
+                                <p>用于管理图片审核、系统通知与安全提醒。</p>
+                            </div>
+                        </div>
+
+                        <div class="profile-form-grid">
+                            <div class="form-group">
+                                <label for="notify-upload">素材上传提醒</label>
+                                <div class="select-shell">
+                                    <select id="notify-upload">
+                                        <option selected>实时通知</option>
+                                        <option>每日汇总</option>
+                                        <option>关闭</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="notify-security">安全预警</label>
+                                <div class="select-shell">
+                                    <select id="notify-security">
+                                        <option selected>强提醒</option>
+                                        <option>普通提醒</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="notify-language">界面语言</label>
+                                <div class="select-shell">
+                                    <select id="notify-language">
+                                        <option selected>简体中文</option>
+                                        <option>English</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-actions">
+                            <button type="button" class="primary-button" style="width:auto;">保存偏好</button>
+                        </div>
+                    </section>
+
+                    <section class="tab-panel" id="tab-security">
+                        <div class="panel-header">
+                            <div>
+                                <h3>安全设置</h3>
+                                <p>保留密码更新与双重验证入口，视觉上和资料页保持统一卡片风格。</p>
+                            </div>
+                        </div>
+
+                        <div class="profile-form-grid">
+                            <div class="form-group">
+                                <label for="current-password">当前密码</label>
+                                <div class="input-shell">
+                                    <span class="input-icon">*</span>
+                                    <input id="current-password" type="password" placeholder="请输入当前密码">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="new-password">新密码</label>
+                                <div class="input-shell">
+                                    <span class="input-icon">*</span>
+                                    <input id="new-password" type="password" placeholder="请输入新密码">
+                                </div>
+                            </div>
+                            <div class="form-group full">
+                                <label for="two-factor">双重验证</label>
+                                <div class="select-shell">
+                                    <select id="two-factor">
+                                        <option selected>邮箱验证码</option>
+                                        <option>Authenticator App</option>
+                                        <option>暂不启用</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-actions">
+                            <button type="button" class="ghost-button">查看登录设备</button>
+                            <button type="button" class="primary-button" style="width:auto;">更新安全设置</button>
+                        </div>
+                    </section>
+
+                    <section class="tab-panel" id="tab-activity">
+                        <div class="panel-header">
+                            <div>
+                                <h3>最近活动</h3>
+                                <p>从仪表盘接口读取活动记录，改成卡片式时间流，和设计稿的底部信息区一致。</p>
+                            </div>
+                        </div>
+                        <div class="activity-list" id="recent-activities"></div>
+                    </section>
+                </div>
+            </section>
+        </section>
+    </main>
+</body>
+</html>

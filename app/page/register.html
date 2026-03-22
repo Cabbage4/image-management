@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - Image Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="register.js?v=2" defer></script>
+</head>
+<body class="auth-page">
+    <main class="auth-shell">
+        <section class="auth-visual">
+            <div class="brand-mark">
+                <span class="dot"></span>
+                <span>Image Management</span>
+            </div>
+
+            <div class="auth-hero">
+                <h1>创建账号，开始管理你的图像资产</h1>
+                <p>注册后即可使用图片管理、团队协作、角色分配和活动追踪等功能，快速建立标准化素材管理流程。</p>
+            </div>
+
+            <div class="visual-card">
+                <div class="visual-window">
+                    <div class="window-topbar">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <div class="window-panel">
+                        <div class="window-row md"></div>
+                        <div class="window-row lg"></div>
+                        <div class="window-grid">
+                            <div class="window-box"></div>
+                            <div class="window-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="auth-form-pane">
+            <div class="auth-header">
+                <span class="eyebrow">快速注册</span>
+                <h2>Create your workspace</h2>
+                <p>填写基础账号信息即可开始使用。页面会保留强密码提示和注册完成后的跳转逻辑。</p>
+            </div>
+
+            <form id="register-form" class="auth-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="username">用户名</label>
+                        <div class="input-shell">
+                            <span class="input-icon">U</span>
+                            <input type="text" id="username" name="username" placeholder="请输入您的用户名" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">邮箱地址</label>
+                        <div class="input-shell">
+                            <span class="input-icon">@</span>
+                            <input type="email" id="email" name="email" placeholder="请输入您的邮箱" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group full">
+                    <label for="password">登录密码</label>
+                    <div class="input-shell">
+                        <span class="input-icon">*</span>
+                        <input type="password" id="password" name="password" placeholder="请输入您的密码" required>
+                    </div>
+                    <div class="form-hint">建议包含大小写字母、数字和特殊字符，便于满足系统强密码要求。</div>
+                </div>
+
+                <button type="submit" class="primary-button">创建账号</button>
+                <div id="error-message" class="error"></div>
+            </form>
+
+            <div class="auth-footer">
+                已经有账号？<a href="login.html">返回登录</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

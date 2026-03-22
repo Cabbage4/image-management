@@ -1,0 +1,13 @@
+# Build output
+dist/
+
+# Runtime data
+data/
+app/data/
+
+# macOS
+.DS_Store
+
+# Logs / temp
+*.log
+*.tmp

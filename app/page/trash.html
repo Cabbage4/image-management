@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片回收站 - Image Management</title>
+    <link rel="stylesheet" href="styles.css?v=4">
+    <script type="module" src="trash.js?v=2" defer></script>
+</head>
+<body class="app-shell">
+    <main class="dashboard-shell">
+        <header class="topbar">
+            <div class="topbar-title">
+                <h1>图片回收站</h1>
+                <p>独立管理已删除的图片和文件夹，后续将在这里继续补恢复、清空与清理周期等功能。</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="dashboard.html" class="button-link">用户中心</a>
+                <a href="gallery.html" class="button-link">图片管理</a>
+                <a href="operation_logs.html" class="button-link">用户操作日志</a>
+                <button type="button" class="ghost-button" id="logout-button">退出登录</button>
+            </div>
+        </header>
+
+        <section class="panel trash-page-panel">
+            <div class="trash-config-row">
+                <div class="form-group">
+                    <label for="trash-cleanup-minutes">自动清空时间（分钟）</label>
+                    <div class="input-shell">
+                        <span class="input-icon">⏱</span>
+                        <input id="trash-cleanup-minutes" type="number" min="1" step="1" value="60">
+                    </div>
+                </div>
+                <button type="button" class="secondary-button" id="save-trash-config">保存回收时间</button>
+            </div>
+            <div id="trash-config-message" class="status-message"></div>
+
+            <div class="trash-summary-bar">
+                <div class="trash-summary-left">
+                    <span id="trash-selected-count">已选中 0 项</span>
+                </div>
+                <div class="trash-summary-actions">
+                    <button type="button" class="secondary-button" id="trash-restore-selected">还原所选</button>
+                    <button type="button" class="ghost-button danger-btn" id="trash-clear-all">清空回收站</button>
+                </div>
+            </div>
+
+            <div class="trash-meta-bar">
+                <span id="trash-total-count">共 0 条回收记录</span>
+                <span id="trash-cleanup-note">系统将按设定周期自动清空回收站</span>
+            </div>
+
+            <div class="trash-table-wrap">
+                <table class="trash-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="trash-select-all"></th>
+                            <th>文件名称</th>
+                            <th>删除日期</th>
+                            <th>清理日期</th>
+                            <th>类型</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trash-table-body">
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">回收站页面已独立出来，下一步会继续接入真实数据与操作。</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

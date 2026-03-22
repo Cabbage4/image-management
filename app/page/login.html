@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - Image Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script type="module" src="login.js?v=4" defer></script>
+</head>
+<body class="auth-page">
+    <main class="auth-shell">
+        <section class="auth-visual">
+            <div class="brand-mark">
+                <span class="dot"></span>
+                <span>Image Management</span>
+            </div>
+
+            <div class="auth-hero">
+                <h1>欢迎回来，继续你的图像工作流</h1>
+                <p>统一管理图片素材、成员权限与协作记录。登录后可快速进入个人工作台、查看最近活动并继续团队协作。</p>
+            </div>
+
+            <div class="visual-card">
+                <div class="visual-window">
+                    <div class="window-topbar">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <div class="window-panel">
+                        <div class="window-row sm"></div>
+                        <div class="window-row lg"></div>
+                        <div class="window-grid">
+                            <div class="window-box"></div>
+                            <div class="window-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="auth-form-pane">
+            <div class="auth-header">
+                <span class="eyebrow">账号登录</span>
+                <h2>Sign in to continue</h2>
+                <p>请输入用户名或邮箱和密码进入系统。支持失败提示、记住登录状态和快捷跳转注册页。</p>
+            </div>
+
+            <form id="login-form" class="auth-form">
+                <div class="form-group full">
+                    <label for="identifier">用户名或邮箱</label>
+                    <div class="input-shell">
+                        <span class="input-icon">@</span>
+                        <input type="text" id="identifier" name="identifier" placeholder="请输入用户名或邮箱" required>
+                    </div>
+                </div>
+
+                <div class="form-group full">
+                    <label for="password">登录密码</label>
+                    <div class="input-shell">
+                        <span class="input-icon">*</span>
+                        <input type="password" id="password" name="password" placeholder="请输入您的密码" required>
+                    </div>
+                </div>
+
+                <div class="form-meta">
+                    <label class="checkbox-line">
+                        <input type="checkbox" id="remember-me" checked>
+                        <span>记住我</span>
+                    </label>
+                    <a href="#">忘记密码？</a>
+                </div>
+
+                <button type="submit" class="primary-button">登录</button>
+                <div class="form-hint">支持使用用户名或邮箱登录。</div>
+                <div id="error-message" class="error"></div>
+            </form>
+
+            <div class="auth-footer">
+                还没有账号？<a href="register.html">立即注册</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

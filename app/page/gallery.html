@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片管理 - Image Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="gallery.js?v=7" defer></script>
+</head>
+<body class="app-shell">
+    <main class="dashboard-shell">
+        <header class="topbar">
+            <div class="topbar-title">
+                <h1>图片管理模块</h1>
+                <p>支持图片上传、图库浏览、文件夹管理、关键词搜索、预览详情、编辑信息、删除、批量操作、基础图片编辑与回收站。</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="dashboard.html" class="button-link">返回用户中心</a>
+                <a href="operation_logs.html" class="button-link">用户操作日志</a>
+                <a href="trash.html" class="button-link">回收站</a>
+            </div>
+        </header>
+
+        <section class="gallery-layout">
+            <aside class="gallery-sidebar panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>文件夹</h3>
+                        <p>快速切换素材目录，支持新建、删除与回收站管理。</p>
+                    </div>
+                </div>
+                <div class="input-shell folder-search-shell">
+                    <span class="input-icon">⌕</span>
+                    <input id="folder-search-input" type="text" placeholder="搜索文件夹">
+                </div>
+                <div class="folder-list folder-list-scroll" id="folder-list"></div>
+
+                <form id="folder-form" class="auth-form compact-form">
+                    <div class="form-group full">
+                        <label for="folder-name">新建文件夹</label>
+                        <div class="input-shell">
+                            <span class="input-icon">+</span>
+                            <input id="folder-name" type="text" placeholder="例如：活动海报 / 产品图 / 头像素材" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="secondary-button">创建文件夹</button>
+                    <div id="folder-message" class="status-message"></div>
+                </form>
+            </aside>
+
+            <section class="gallery-main">
+                <section class="panel">
+                    <div class="gallery-toolbar">
+                        <div class="gallery-search">
+                            <div class="input-shell">
+                                <span class="input-icon">⌕</span>
+                                <input id="search-input" type="text" placeholder="搜索文件名、标签或描述">
+                            </div>
+                        </div>
+                        <button type="button" class="primary-button upload-open-button" id="open-upload-modal" style="width:auto;">上传图片</button>
+                    </div>
+
+                    <div class="batch-toolbar hidden" id="batch-toolbar">
+                        <div class="batch-toolbar-left">
+                            <label class="checkbox-line">
+                                <input type="checkbox" id="select-all-checkbox">
+                                <span>全选当前结果</span>
+                            </label>
+                            <span id="selected-count">已选择 0 张</span>
+                        </div>
+                        <div class="batch-toolbar-actions">
+                            <div class="select-shell batch-move-select-shell">
+                                <select id="batch-folder-select"></select>
+                            </div>
+                            <button type="button" class="secondary-button" id="batch-download-button">批量下载</button>
+                            <button type="button" class="secondary-button" id="batch-move-button">批量移动</button>
+                            <button type="button" class="ghost-button danger-btn" id="batch-delete-button">批量删除</button>
+                        </div>
+                    </div>
+
+                    <div class="gallery-grid" id="gallery-grid"></div>
+                    <div class="gallery-pagination-bar">
+                        <div class="gallery-pagination-info" id="gallery-pagination-info">共 0 张图片</div>
+                        <div class="gallery-pagination-actions">
+                            <button type="button" class="ghost-button" id="gallery-prev-page">上一页</button>
+                            <span id="gallery-page-indicator">第 1 / 1 页</span>
+                            <button type="button" class="ghost-button" id="gallery-next-page">下一页</button>
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </section>
+    </main>
+
+    <div class="modal-backdrop hidden" id="trash-modal-backdrop">
+        <div class="modal-card modal-card-wide">
+            <div class="panel-header">
+                <div>
+                    <h3>图片回收站</h3>
+                    <p>查看已删除图片与文件夹，支持批量恢复、清空回收站和自动清理周期设置。</p>
+                </div>
+                <button type="button" class="ghost-button" id="close-trash-modal">关闭</button>
+            </div>
+            <div class="trash-config-row">
+                <div class="form-group">
+                    <label for="trash-cleanup-minutes">自动清空周期（分钟）</label>
+                    <div class="input-shell">
+                        <span class="input-icon">⏱</span>
+                        <input id="trash-cleanup-minutes" type="number" min="1" step="1" value="60">
+                    </div>
+                </div>
+                <button type="button" class="secondary-button" id="save-trash-config">保存周期</button>
+            </div>
+            <div id="trash-message" class="status-message"></div>
+            <div class="trash-summary-bar">
+                <div class="trash-summary-left">
+                    <span id="trash-selected-count">已选中 0 项</span>
+                </div>
+                <div class="trash-summary-actions">
+                    <button type="button" class="secondary-button" id="trash-restore-selected">还原所选</button>
+                    <button type="button" class="ghost-button danger-btn" id="trash-clear-all">清空回收站</button>
+                </div>
+            </div>
+
+            <div class="trash-meta-bar">
+                <span id="trash-total-count">共 0 条回收记录</span>
+                <span id="trash-cleanup-note">系统将按设定周期自动清空回收站</span>
+            </div>
+
+            <div class="trash-table-wrap">
+                <table class="trash-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="trash-select-all"></th>
+                            <th>文件名称</th>
+                            <th>删除日期</th>
+                            <th>清理日期</th>
+                            <th>类型</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trash-table-body"></tbody>
+                </table>
+            </div>
+
+            <div class="trash-secondary-sections">
+                <section>
+                    <div class="panel-header compact-panel-header">
+                        <div>
+                            <h3>已删除文件夹</h3>
+                        </div>
+                    </div>
+                    <div class="trash-list" id="trash-folders-list"></div>
+                </section>
+                <section>
+                    <div class="panel-header compact-panel-header">
+                        <div>
+                            <h3>用户操作日志</h3>
+                            <p>查看删除、恢复、清理周期调整等与回收站和图片管理相关的用户行为。</p>
+                        </div>
+                    </div>
+                    <div class="activity-list" id="trash-activities"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="upload-modal-backdrop">
+        <div class="modal-card modal-card-upload">
+            <div class="panel-header">
+                <div>
+                    <h3>上传图片</h3>
+                    <p>支持选择目标文件夹、输入标签并即时查看待上传文件预览。</p>
+                </div>
+                <button type="button" class="ghost-button" id="close-upload-modal">关闭</button>
+            </div>
+
+            <form id="upload-form" class="upload-grid">
+                <div class="form-group full">
+                    <label for="image-file">选择图片</label>
+                    <label class="upload-dropzone" for="image-file">
+                        <input id="image-file" type="file" accept="image/*" required>
+                        <div>
+                            <strong>点击选择图片</strong>
+                            <span>支持 png / jpg / webp / gif</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="image-folder">保存到文件夹</label>
+                    <div class="select-shell">
+                        <select id="image-folder"></select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="image-tags">标签</label>
+                    <div class="input-shell">
+                        <span class="input-icon">#</span>
+                        <input id="image-tags" type="text" placeholder="用逗号分隔，如 banner,marketing,summer">
+                    </div>
+                </div>
+
+                <div class="form-group full">
+                    <label for="image-description">图片说明</label>
+                    <div class="textarea-shell">
+                        <textarea id="image-description" placeholder="补充图片用途、版本或备注信息"></textarea>
+                    </div>
+                </div>
+
+                <div class="upload-preview" id="upload-preview">
+                    <div class="empty-state">选择图片后会在这里展示预览。</div>
+                </div>
+
+                <div class="panel-actions">
+                    <button type="submit" class="primary-button" style="width:auto;">上传到图库</button>
+                </div>
+                <div id="upload-message" class="status-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="preview-modal-backdrop">
+        <div class="modal-card modal-card-wide">
+            <div class="panel-header">
+                <div>
+                    <h3>图片预览</h3>
+                    <p>查看图片大图、元信息、标签与说明，可在详情中继续编辑。</p>
+                </div>
+                <div class="modal-nav-actions">
+                    <button type="button" class="ghost-button" id="preview-prev">上一张</button>
+                    <button type="button" class="ghost-button" id="preview-next">下一张</button>
+                    <button type="button" class="ghost-button" id="close-preview-modal">关闭</button>
+                </div>
+            </div>
+            <div class="preview-layout">
+                <div class="preview-stage">
+                    <img id="preview-full-image" class="preview-full-image" alt="图片预览">
+                </div>
+                <div class="preview-sidecard">
+                    <h4 id="preview-title">图片名称</h4>
+                    <p id="preview-description">暂无说明</p>
+                    <div class="info-list compact-info-list">
+                        <div class="info-item">
+                            <span class="label">文件夹</span>
+                            <span class="value" id="preview-folder">未分类</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">上传时间</span>
+                            <span class="value" id="preview-time">--</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">文件大小</span>
+                            <span class="value" id="preview-size">--</span>
+                        </div>
+                    </div>
+                    <div class="tag-list" id="preview-tags"></div>
+                    <div class="panel-actions preview-side-actions">
+                        <button type="button" class="ghost-button" id="preview-download">下载图片</button>
+                        <button type="button" class="ghost-button" id="preview-open-editor">进入编辑器</button>
+                        <button type="button" class="ghost-button" id="preview-edit">编辑信息</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="editor-modal-backdrop">
+        <div class="modal-card modal-card-editor">
+            <div class="panel-header">
+                <div>
+                    <h3>基础图片编辑</h3>
+                    <p>当前提供旋转、缩放、裁剪、亮度、对比度、饱和度与实时预览，可导出或保存为新图片。</p>
+                </div>
+                <div class="modal-nav-actions">
+                    <button type="button" class="ghost-button" id="editor-reset">重置</button>
+                    <button type="button" class="ghost-button" id="close-editor-modal">关闭</button>
+                </div>
+            </div>
+            <div class="editor-layout">
+                <div class="editor-stage">
+                    <canvas id="editor-canvas" class="editor-canvas"></canvas>
+                </div>
+                <div class="editor-controls">
+                    <div class="editor-control-group">
+                        <label for="editor-output-name">输出文件名</label>
+                        <div class="input-shell">
+                            <span class="input-icon">✎</span>
+                            <input id="editor-output-name" type="text" placeholder="例如：banner-edited.png">
+                        </div>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-output-folder">保存到文件夹</label>
+                        <div class="select-shell">
+                            <select id="editor-output-folder"></select>
+                        </div>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-rotate">旋转角度</label>
+                        <input id="editor-rotate" type="range" min="-180" max="180" value="0">
+                        <span id="editor-rotate-value">0°</span>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-scale">缩放</label>
+                        <input id="editor-scale" type="range" min="50" max="150" value="100">
+                        <span id="editor-scale-value">100%</span>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-crop-x">裁剪起点 X</label>
+                        <input id="editor-crop-x" type="range" min="0" max="50" value="0">
+                        <span id="editor-crop-x-value">0%</span>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-crop-y">裁剪起点 Y</label>
+                        <input id="editor-crop-y" type="range" min="0" max="50" value="0">
+                        <span id="editor-crop-y-value">0%</span>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-crop-width">裁剪宽度</label>
+                        <input id="editor-crop-width" type="range" min="50" max="100" value="100">
+                        <span id="editor-crop-width-value">100%</span>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-crop-height">裁剪高度</label>
+                        <input id="editor-crop-height" type="range" min="50" max="100" value="100">
+                        <span id="editor-crop-height-value">100%</span>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-brightness">亮度</label>
+                        <input id="editor-brightness" type="range" min="50" max="150" value="100">
+                        <span id="editor-brightness-value">100%</span>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-contrast">对比度</label>
+                        <input id="editor-contrast" type="range" min="50" max="150" value="100">
+                        <span id="editor-contrast-value">100%</span>
+                    </div>
+                    <div class="editor-control-group">
+                        <label for="editor-saturate">饱和度</label>
+                        <input id="editor-saturate" type="range" min="0" max="200" value="100">
+                        <span id="editor-saturate-value">100%</span>
+                    </div>
+                    <div class="panel-actions editor-actions">
+                        <button type="button" class="secondary-button" id="editor-apply-preview">应用预览</button>
+                        <button type="button" class="ghost-button" id="editor-download">导出图片</button>
+                        <button type="button" class="primary-button" id="editor-save-copy" style="width:auto;">保存为新图片</button>
+                    </div>
+                    <div id="editor-message" class="status-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="edit-modal-backdrop">
+        <div class="modal-card">
+            <div class="panel-header">
+                <div>
+                    <h3>编辑图片信息</h3>
+                    <p>修改图片名称、文件夹、标签和说明。</p>
+                </div>
+                <button type="button" class="ghost-button" id="close-edit-modal">关闭</button>
+            </div>
+            <form id="edit-form" class="auth-form compact-form">
+                <input type="hidden" id="edit-image-id">
+                <div class="form-group full">
+                    <label for="edit-image-name">图片名称</label>
+                    <div class="input-shell">
+                        <span class="input-icon">✎</span>
+                        <input id="edit-image-name" type="text" required>
+                    </div>
+                </div>
+                <div class="form-group full">
+                    <label for="edit-image-folder">文件夹</label>
+                    <div class="select-shell">
+                        <select id="edit-image-folder"></select>
+                    </div>
+                </div>
+                <div class="form-group full">
+                    <label for="edit-image-tags">标签</label>
+                    <div class="input-shell">
+                        <span class="input-icon">#</span>
+                        <input id="edit-image-tags" type="text">
+                    </div>
+                </div>
+                <div class="form-group full">
+                    <label for="edit-image-description">图片说明</label>
+                    <div class="textarea-shell">
+                        <textarea id="edit-image-description"></textarea>
+                    </div>
+                </div>
+                <div class="panel-actions">
+                    <button type="submit" class="primary-button" style="width:auto;">保存修改</button>
+                </div>
+                <div id="edit-message" class="status-message"></div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
