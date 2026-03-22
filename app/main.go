@@ -12,7 +12,6 @@ import (
 	"io/fs"
 	"log"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -46,14 +45,6 @@ type User struct {
 	DisplayName   string `json:"displayName,omitempty"`
 	AvatarDataURL string `json:"avatarDataUrl,omitempty"`
 	AvatarURL     string `json:"avatarUrl,omitempty"`
-}
-
-type Activity struct {
-	Timestamp string `json:"timestamp"`
-	Action    string `json:"action"`
-	Details   string `json:"details,omitempty"`
-	IP        string `json:"ip,omitempty"`
-	IPCity    string `json:"ipCity,omitempty"`
 }
 
 type TeamMember struct {
@@ -334,73 +325,6 @@ func currentUserUnsafe() User {
 	return currentUser
 }
 
-func clientIPFromRequest(r *http.Request) string {
-	if r == nil {
-		return "系统"
-	}
-	if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwarded != "" {
-		parts := strings.Split(forwarded, ",")
-		if len(parts) > 0 && strings.TrimSpace(parts[0]) != "" {
-			return strings.TrimSpace(parts[0])
-		}
-	}
-	if realIP := strings.TrimSpace(r.Header.Get("X-Real-IP")); realIP != "" {
-		return realIP
-	}
-	host := strings.TrimSpace(r.RemoteAddr)
-	if strings.Contains(host, ":") {
-		if parsedHost, _, err := net.SplitHostPort(host); err == nil {
-			return parsedHost
-		}
-	}
-	if host == "" {
-		return "未知 IP"
-	}
-	return host
-}
-
-func ipCityLabel(ip string) string {
-	ip = strings.TrimSpace(strings.ToLower(ip))
-	if ip == "" || ip == "系统" || ip == "未知 ip" {
-		return "系统"
-	}
-	if ip == "127.0.0.1" || ip == "::1" || strings.HasPrefix(ip, "192.168.") || strings.HasPrefix(ip, "10.") || strings.HasPrefix(ip, "172.") {
-		return "本地/局域网"
-	}
-	return "未知城市"
-}
-
-func addActivity(action, details string) {
-	state.Activities = append([]Activity{{Timestamp: currentTimestamp(), Action: action, Details: details, IP: "系统", IPCity: "系统"}}, state.Activities...)
-}
-
-func addActivityWithRequest(r *http.Request, action, details string) {
-	ip := clientIPFromRequest(r)
-	state.Activities = append([]Activity{{Timestamp: currentTimestamp(), Action: action, Details: details, IP: ip, IPCity: ipCityLabel(ip)}}, state.Activities...)
-}
-
-func pruneOldActivitiesUnsafe() int {
-	cutoff := time.Now().AddDate(0, 0, -activityRetentionDays)
-	kept := make([]Activity, 0, len(state.Activities))
-	removed := 0
-	for _, activity := range state.Activities {
-		t, err := time.Parse("2006-01-02 15:04:05", activity.Timestamp)
-		if err != nil {
-			kept = append(kept, activity)
-			continue
-		}
-		if t.Before(cutoff) {
-			removed++
-			continue
-		}
-		kept = append(kept, activity)
-	}
-	if removed > 0 {
-		state.Activities = kept
-	}
-	return removed
-}
-
 func jsonError(w http.ResponseWriter, code int, msg string) {
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": msg})
@@ -546,6 +470,47 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	jsonError(w, http.StatusUnauthorized, "用户名/邮箱或密码错误")
 }
 
+func forgotPasswordResetHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonError(w, http.StatusMethodNotAllowed, "请求方法不支持")
+		return
+	}
+	var payload struct {
+		Identifier  string `json:"identifier"`
+		NewPassword string `json:"newPassword"`
+	}
+	if err := decodeJSON(r, &payload); err != nil {
+		jsonError(w, http.StatusBadRequest, "请求体格式错误")
+		return
+	}
+	identifier := strings.TrimSpace(payload.Identifier)
+	newPassword := strings.TrimSpace(payload.NewPassword)
+	if identifier == "" || newPassword == "" {
+		jsonError(w, http.StatusBadRequest, "请填写用户名/邮箱和新密码")
+		return
+	}
+	hashedPassword, err := hashPassword(newPassword)
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "密码处理失败")
+		return
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	for i, user := range state.Users {
+		if user.Email == identifier || user.Username == identifier {
+			state.Users[i].Password = hashedPassword
+			addActivityWithRequest(r, "重置密码", fmt.Sprintf("用户 %s 重置了密码", state.Users[i].Username))
+			if err := saveStore(); err != nil {
+				jsonError(w, http.StatusInternalServerError, "密码重置保存失败")
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]string{"message": "密码已重置，请使用新密码登录"})
+			return
+		}
+	}
+	jsonError(w, http.StatusNotFound, "未找到对应账号")
+}
+
 func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -555,22 +520,6 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := currentUserUnsafe()
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"user": toSafeUser(currentUser), "activities": state.Activities, "stats": map[string]int{"uploads": currentUser.UploadCount, "teamMembers": len(state.Team)}})
-}
-
-func activitiesHandler(w http.ResponseWriter, r *http.Request) {
-	mu.Lock()
-	removed := pruneOldActivitiesUnsafe()
-	if removed > 0 {
-		_ = saveStore()
-	}
-	activities := append([]Activity(nil), state.Activities...)
-	mu.Unlock()
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"activities": activities,
-		"retentionDays": activityRetentionDays,
-		"cleanupApplied": removed > 0,
-		"cleanupRemoved": removed,
-	})
 }
 
 func profileAvatarHandler(w http.ResponseWriter, r *http.Request) {
@@ -1064,7 +1013,7 @@ func imagesUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseMultipartForm(16 << 20); err != nil {
+	if err := r.ParseMultipartForm(64 << 20); err != nil {
 		jsonError(w, http.StatusBadRequest, "无法解析上传表单")
 		return
 	}
@@ -1073,29 +1022,19 @@ func imagesUploadHandler(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "请选择图片文件")
 		return
 	}
-	filename, url, size, err := saveUploadedFile(file, header)
-	if err != nil {
-		jsonError(w, http.StatusInternalServerError, "保存图片失败")
-		return
-	}
 	folderID := r.FormValue("folderId")
 	if folderID == "" {
 		folderID = state.Folders[0].ID
 	}
 	tagsRaw := strings.TrimSpace(r.FormValue("tags"))
 	description := strings.TrimSpace(r.FormValue("description"))
-	tags := []string{}
-	if tagsRaw != "" {
-		for _, tag := range strings.Split(tagsRaw, ",") {
-			tag = strings.TrimSpace(tag)
-			if tag != "" {
-				tags = append(tags, tag)
-			}
-		}
+	img, err := buildUploadedImageItem(file, header, folderID, tagsRaw, description)
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "保存图片失败")
+		return
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	img := ImageItem{ID: imageID(), Name: sanitizeFilename(header.Filename), OriginalName: header.Filename, Filename: filename, URL: url, FolderID: folderID, Description: description, Tags: tags, UploadedAt: currentTimestamp(), Size: size}
 	state.Images = append(state.Images, img)
 	for i := range state.Users {
 		state.Users[i].UploadCount = len(state.Images)
@@ -1107,6 +1046,94 @@ func imagesUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": "上传成功", "image": img})
+}
+
+func buildUploadedImageItem(file multipart.File, header *multipart.FileHeader, folderID, tagsRaw, description string) (ImageItem, error) {
+	filename, url, size, err := saveUploadedFile(file, header)
+	if err != nil {
+		return ImageItem{}, err
+	}
+	tags := []string{}
+	if tagsRaw != "" {
+		for _, tag := range strings.Split(tagsRaw, ",") {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+	}
+	return ImageItem{
+		ID:           imageID(),
+		Name:         sanitizeFilename(header.Filename),
+		OriginalName: header.Filename,
+		Filename:     filename,
+		URL:          url,
+		FolderID:     folderID,
+		Description:  description,
+		Tags:         tags,
+		UploadedAt:   currentTimestamp(),
+		Size:         size,
+	}, nil
+}
+
+func imagesBatchUploadHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonError(w, http.StatusMethodNotAllowed, "请求方法不支持")
+		return
+	}
+	if err := r.ParseMultipartForm(128 << 20); err != nil {
+		jsonError(w, http.StatusBadRequest, "无法解析批量上传表单")
+		return
+	}
+	folderID := r.FormValue("folderId")
+	if folderID == "" {
+		folderID = state.Folders[0].ID
+	}
+	tagsRaw := strings.TrimSpace(r.FormValue("tags"))
+	description := strings.TrimSpace(r.FormValue("description"))
+	files := r.MultipartForm.File["images"]
+	if len(files) == 0 {
+		files = r.MultipartForm.File["image"]
+	}
+	if len(files) == 0 {
+		jsonError(w, http.StatusBadRequest, "请选择至少一张图片")
+		return
+	}
+
+	uploaded := make([]ImageItem, 0, len(files))
+	failed := 0
+	for _, header := range files {
+		file, err := header.Open()
+		if err != nil {
+			failed++
+			continue
+		}
+		img, err := buildUploadedImageItem(file, header, folderID, tagsRaw, description)
+		if err != nil {
+			failed++
+			continue
+		}
+		uploaded = append(uploaded, img)
+	}
+	if len(uploaded) == 0 {
+		jsonError(w, http.StatusInternalServerError, "批量上传失败")
+		return
+	}
+
+	mu.Lock()
+	state.Images = append(state.Images, uploaded...)
+	for i := range state.Users {
+		state.Users[i].UploadCount = len(state.Images)
+		}
+	addActivityWithRequest(r, "批量上传图片", fmt.Sprintf("批量上传 %d 张图片到 %s", len(uploaded), folderNameByID(folderID)))
+	if err := saveStore(); err != nil {
+		mu.Unlock()
+		jsonError(w, http.StatusInternalServerError, "批量上传保存失败")
+		return
+	}
+	mu.Unlock()
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": fmt.Sprintf("批量上传完成，成功 %d 张，失败 %d 张。", len(uploaded), failed), "images": uploaded, "successCount": len(uploaded), "failedCount": failed})
 }
 
 func updateImageHandler(w http.ResponseWriter, r *http.Request, imageID string) {
@@ -1488,6 +1515,7 @@ func main() {
 	http.HandleFunc(publicPrefix, uploadsHandler)
 	http.HandleFunc("/api/login", withCORS(loginHandler))
 	http.HandleFunc("/api/register", withCORS(registerHandler))
+	http.HandleFunc("/api/password/forgot-reset", withCORS(forgotPasswordResetHandler))
 	http.HandleFunc("/api/dashboard", withCORS(dashboardHandler))
 	http.HandleFunc("/api/activities", withCORS(activitiesHandler))
 	http.HandleFunc("/api/profile/avatar", withCORS(profileAvatarHandler))
@@ -1497,6 +1525,7 @@ func main() {
 	http.HandleFunc("/api/folders/", withCORS(folderItemHandler))
 	http.HandleFunc("/api/images", withCORS(imagesGetHandler))
 	http.HandleFunc("/api/images/upload", withCORS(imagesUploadHandler))
+	http.HandleFunc("/api/images/upload-batch", withCORS(imagesBatchUploadHandler))
 	http.HandleFunc("/api/images/", withCORS(imageItemHandler))
 	http.HandleFunc("/api/trash", withCORS(trashListHandler))
 	http.HandleFunc("/api/trash/config", withCORS(trashConfigHandler))

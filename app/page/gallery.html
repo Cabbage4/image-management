@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>图片管理 - Image Management</title>
-    <link rel="stylesheet" href="styles.css">
-    <script type="module" src="gallery.js?v=7" defer></script>
+    <link rel="stylesheet" href="styles.css?v=120">
+    <script type="module" src="gallery.js?v=120" defer></script>
 </head>
 <body class="app-shell">
     <main class="dashboard-shell">
@@ -57,7 +57,7 @@
                                 <input id="search-input" type="text" placeholder="搜索文件名、标签或描述">
                             </div>
                         </div>
-                        <button type="button" class="primary-button upload-open-button" id="open-upload-modal" style="width:auto;">上传图片</button>
+                        <button type="button" class="primary-button upload-open-button" id="open-upload-modal" style="width:auto;">批量上传图片</button>
                     </div>
 
                     <div class="batch-toolbar hidden" id="batch-toolbar">
@@ -78,6 +78,7 @@
                         </div>
                     </div>
 
+                    <div id="gallery-loading" class="loading-state">正在加载图片列表，请稍候...</div>
                     <div class="gallery-grid" id="gallery-grid"></div>
                     <div class="gallery-pagination-bar">
                         <div class="gallery-pagination-info" id="gallery-pagination-info">共 0 张图片</div>
@@ -179,10 +180,10 @@
                 <div class="form-group full">
                     <label for="image-file">选择图片</label>
                     <label class="upload-dropzone" for="image-file">
-                        <input id="image-file" type="file" accept="image/*" required>
+                        <input id="image-file" type="file" accept="image/*" multiple required>
                         <div>
                             <strong>点击选择图片</strong>
-                            <span>支持 png / jpg / webp / gif</span>
+                            <span>支持批量选择 png / jpg / webp / gif</span>
                         </div>
                     </label>
                 </div>
@@ -214,7 +215,7 @@
                 </div>
 
                 <div class="panel-actions">
-                    <button type="submit" class="primary-button" style="width:auto;">上传到图库</button>
+                    <button type="submit" class="primary-button" style="width:auto;">批量上传到图库</button>
                 </div>
                 <div id="upload-message" class="status-message"></div>
             </form>
@@ -261,92 +262,6 @@
                         <button type="button" class="ghost-button" id="preview-open-editor">进入编辑器</button>
                         <button type="button" class="ghost-button" id="preview-edit">编辑信息</button>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-backdrop hidden" id="editor-modal-backdrop">
-        <div class="modal-card modal-card-editor">
-            <div class="panel-header">
-                <div>
-                    <h3>基础图片编辑</h3>
-                    <p>当前提供旋转、缩放、裁剪、亮度、对比度、饱和度与实时预览，可导出或保存为新图片。</p>
-                </div>
-                <div class="modal-nav-actions">
-                    <button type="button" class="ghost-button" id="editor-reset">重置</button>
-                    <button type="button" class="ghost-button" id="close-editor-modal">关闭</button>
-                </div>
-            </div>
-            <div class="editor-layout">
-                <div class="editor-stage">
-                    <canvas id="editor-canvas" class="editor-canvas"></canvas>
-                </div>
-                <div class="editor-controls">
-                    <div class="editor-control-group">
-                        <label for="editor-output-name">输出文件名</label>
-                        <div class="input-shell">
-                            <span class="input-icon">✎</span>
-                            <input id="editor-output-name" type="text" placeholder="例如：banner-edited.png">
-                        </div>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-output-folder">保存到文件夹</label>
-                        <div class="select-shell">
-                            <select id="editor-output-folder"></select>
-                        </div>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-rotate">旋转角度</label>
-                        <input id="editor-rotate" type="range" min="-180" max="180" value="0">
-                        <span id="editor-rotate-value">0°</span>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-scale">缩放</label>
-                        <input id="editor-scale" type="range" min="50" max="150" value="100">
-                        <span id="editor-scale-value">100%</span>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-crop-x">裁剪起点 X</label>
-                        <input id="editor-crop-x" type="range" min="0" max="50" value="0">
-                        <span id="editor-crop-x-value">0%</span>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-crop-y">裁剪起点 Y</label>
-                        <input id="editor-crop-y" type="range" min="0" max="50" value="0">
-                        <span id="editor-crop-y-value">0%</span>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-crop-width">裁剪宽度</label>
-                        <input id="editor-crop-width" type="range" min="50" max="100" value="100">
-                        <span id="editor-crop-width-value">100%</span>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-crop-height">裁剪高度</label>
-                        <input id="editor-crop-height" type="range" min="50" max="100" value="100">
-                        <span id="editor-crop-height-value">100%</span>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-brightness">亮度</label>
-                        <input id="editor-brightness" type="range" min="50" max="150" value="100">
-                        <span id="editor-brightness-value">100%</span>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-contrast">对比度</label>
-                        <input id="editor-contrast" type="range" min="50" max="150" value="100">
-                        <span id="editor-contrast-value">100%</span>
-                    </div>
-                    <div class="editor-control-group">
-                        <label for="editor-saturate">饱和度</label>
-                        <input id="editor-saturate" type="range" min="0" max="200" value="100">
-                        <span id="editor-saturate-value">100%</span>
-                    </div>
-                    <div class="panel-actions editor-actions">
-                        <button type="button" class="secondary-button" id="editor-apply-preview">应用预览</button>
-                        <button type="button" class="ghost-button" id="editor-download">导出图片</button>
-                        <button type="button" class="primary-button" id="editor-save-copy" style="width:auto;">保存为新图片</button>
-                    </div>
-                    <div id="editor-message" class="status-message"></div>
                 </div>
             </div>
         </div>

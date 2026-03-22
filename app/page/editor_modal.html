@@ -1,0 +1,124 @@
+<div class="modal-backdrop hidden" id="editor-modal-backdrop">
+    <div class="modal-card modal-card-editor">
+        <div class="panel-header">
+            <div>
+                <h3>基础图片编辑</h3>
+                <p>当前提供翻转、缩放、裁剪、亮度、对比度、饱和度与实时预览，可导出或保存为新图片。</p>
+            </div>
+            <div class="modal-nav-actions">
+                <button type="button" class="ghost-button" id="editor-reset">重置</button>
+                <button type="button" class="ghost-button" id="close-editor-modal">关闭</button>
+            </div>
+        </div>
+        <div class="editor-layout">
+            <div class="editor-stage">
+                <canvas id="editor-canvas" class="editor-canvas"></canvas>
+            </div>
+            <div class="editor-controls">
+                <section class="editor-control-section histogram-panel">
+                    <div class="editor-section-head">
+                        <h4>直方图</h4>
+                        <p>根据当前预览结果动态更新 RGB 分布。</p>
+                    </div>
+                    <div class="editor-control-group">
+                        <canvas id="editor-histogram-canvas" class="editor-histogram-canvas" width="280" height="120"></canvas>
+                    </div>
+                </section>
+
+                <section class="editor-control-section">
+                    <div class="editor-section-head">
+                        <h4>基础调节</h4>
+                        <p>优先调整翻转、缩放、亮度、对比度、整体饱和度，并按需进入裁剪模式。</p>
+                    </div>
+                    <div class="editor-crop-mode-bar">
+                        <div class="editor-crop-mode-actions">
+                            <button type="button" class="secondary-button" id="editor-toggle-crop-mode">进入裁剪</button>
+                            <button type="button" class="primary-button" id="editor-confirm-crop" hidden style="display:none;">确认裁剪</button>
+                        </div>
+                        <span id="editor-crop-mode-text">当前未进入裁剪模式</span>
+                    </div>
+                    <div class="editor-control-group editor-crop-hint-card">
+                        <label>裁剪说明</label>
+                        <span>点击“进入裁剪”后，在左侧图片上拖拉选择保留区域，完成后点击“确认裁剪”。</span>
+                    </div>
+                    <input id="editor-crop-x" type="hidden" value="0">
+                    <input id="editor-crop-y" type="hidden" value="0">
+                    <input id="editor-crop-width" type="hidden" value="100">
+                    <input id="editor-crop-height" type="hidden" value="100">
+                    <span id="editor-crop-x-value" style="display:none;"></span>
+                    <span id="editor-crop-y-value" style="display:none;"></span>
+                    <span id="editor-crop-width-value" style="display:none;"></span>
+                    <span id="editor-crop-height-value" style="display:none;"></span>
+                    <div class="editor-slider-grid">
+                        <div class="editor-control-group editor-flip-group">
+                            <label>翻转</label>
+                            <div class="editor-flip-actions">
+                                <button type="button" class="ghost-button" id="editor-flip-horizontal">水平翻转</button>
+                                <button type="button" class="ghost-button" id="editor-flip-vertical">垂直翻转</button>
+                            </div>
+                            <span id="editor-rotate-value">未翻转</span>
+                        </div>
+                        <div class="editor-control-group">
+                            <label for="editor-scale">缩放</label>
+                            <input id="editor-scale" type="range" min="50" max="150" value="100">
+                            <span id="editor-scale-value">100%</span>
+                        </div>
+                        <div class="editor-control-group">
+                            <label for="editor-brightness">亮度</label>
+                            <input id="editor-brightness" type="range" min="50" max="150" value="100">
+                            <span id="editor-brightness-value">100%</span>
+                        </div>
+                        <div class="editor-control-group">
+                            <label for="editor-contrast">对比度</label>
+                            <input id="editor-contrast" type="range" min="50" max="150" value="100">
+                            <span id="editor-contrast-value">100%</span>
+                        </div>
+                        <div class="editor-control-group">
+                            <label for="editor-saturate">饱和度</label>
+                            <input id="editor-saturate" type="range" min="0" max="200" value="100">
+                            <span id="editor-saturate-value">100%</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="editor-control-section mixer-panel">
+                    <div class="editor-section-head">
+                        <h4>混色器</h4>
+                        <p>分别调整红、黄、绿、青、蓝、洋红的色相 / 饱和度 / 明度。</p>
+                    </div>
+                    <div id="editor-mixer-controls" class="editor-mixer-controls"></div>
+                </section>
+
+                <section class="editor-output-dock">
+                    <div class="editor-output-header">
+                        <div>
+                            <h4>输出设置</h4>
+                            <p>设置导出文件名、保存位置并执行输出。</p>
+                        </div>
+                    </div>
+                    <div class="editor-output-fields">
+                        <div class="editor-output-field">
+                            <label for="editor-output-name">输出文件名</label>
+                            <div class="input-shell">
+                                <span class="input-icon">✎</span>
+                                <input id="editor-output-name" type="text" placeholder="例如：banner-edited.png">
+                            </div>
+                        </div>
+                        <div class="editor-output-field">
+                            <label for="editor-output-folder">保存到文件夹</label>
+                            <div class="select-shell">
+                                <select id="editor-output-folder"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-actions editor-actions">
+                        <button type="button" class="ghost-button" id="editor-apply-preview">应用预览</button>
+                        <button type="button" class="ghost-button" id="editor-download">导出图片</button>
+                        <button type="button" class="primary-button" id="editor-save-copy" style="width:auto;">保存为新图片</button>
+                    </div>
+                    <div id="editor-message" class="status-message"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
