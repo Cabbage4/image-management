@@ -355,7 +355,7 @@ export function initImageEditor({ API_BASE_URL, populateFolderSelect, refreshCol
     state.sourceImage.onload = () => {
       const d = bindDom();
       d.outputName.value = `${(image.name || 'edited-image').replace(/\.[^.]+$/, '')}-edited.png`;
-      populateFolderSelect(d.outputFolder, refreshCollections.folders || [], image.folderId);
+      populateFolderSelect(d.outputFolder, image.folderId);
       setMessage('');
       d.backdrop.classList.remove('hidden');
       requestAnimationFrame(() => {

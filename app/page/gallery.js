@@ -1,4 +1,5 @@
 import API_BASE_URL from './config.js';
+import { initImageEditor } from './editor.js';
 
 const folderList = document.getElementById('folder-list');
 const folderSelect = document.getElementById('image-folder');
@@ -36,6 +37,7 @@ const closePreviewModalButton = document.getElementById('close-preview-modal');
 const previewPrevButton = document.getElementById('preview-prev');
 const previewNextButton = document.getElementById('preview-next');
 const previewEditButton = document.getElementById('preview-edit');
+const previewOpenEditorButton = document.getElementById('preview-open-editor');
 const previewDownloadButton = document.getElementById('preview-download');
 const batchToolbar = document.getElementById('batch-toolbar');
 const selectAllCheckbox = document.getElementById('select-all-checkbox');
@@ -52,6 +54,21 @@ let currentPreviewIndex = -1;
 let currentPage = 1;
 const pageSize = 6;
 let selectedImages = new Set();
+
+function getImageById(imageId) {
+  return images.map(normalizedImage).find((image) => image.id === imageId) || null;
+}
+
+async function refreshCollections() {
+  await Promise.all([loadFolders(), loadImages()]);
+}
+
+const imageEditor = initImageEditor({
+  API_BASE_URL,
+  populateFolderSelect,
+  refreshCollections,
+  getFolders: () => folders
+});
 
 function setMessage(el, text, type = 'success') {
   if (!el) return;
@@ -248,7 +265,11 @@ function renderImages() {
       link.href = `${API_BASE_URL}/api/images/${image.id}/download`;
       link.click();
     });
-    card.querySelector('.editor-btn')?.addEventListener('click', () => alert('图片编辑器正在独立修复中，先恢复图片管理主链。'));
+    card.querySelector('.editor-btn')?.addEventListener('click', async () => {
+      const target = getImageById(image.id);
+      if (!target) return;
+      await imageEditor.openEditorModal(target);
+    });
     card.querySelector('.edit-btn')?.addEventListener('click', () => openEditModal(image));
     card.querySelector('.delete-btn')?.addEventListener('click', () => deleteImage(image.id));
     galleryGrid.appendChild(card);
@@ -421,6 +442,12 @@ previewEditButton?.addEventListener('click', () => {
   if (currentPreviewIndex < 0 || !list[currentPreviewIndex]) return;
   closePreviewModal();
   openEditModal(list[currentPreviewIndex]);
+});
+previewOpenEditorButton?.addEventListener('click', async () => {
+  const list = filteredImages();
+  if (currentPreviewIndex < 0 || !list[currentPreviewIndex]) return;
+  closePreviewModal();
+  await imageEditor.openEditorModal(list[currentPreviewIndex]);
 });
 previewDownloadButton?.addEventListener('click', () => {
   const list = filteredImages();
