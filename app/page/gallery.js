@@ -196,7 +196,7 @@ function renderFolders() {
 }
 
 function fillPreview(image) {
-  previewImage.src = `${API_BASE_URL}${image.url}`;
+  previewImage.src = `${API_BASE_URL}${image.thumbUrl || image.url}`;
   previewImage.alt = image.name || '图片';
   previewTitle.textContent = image.name || '未命名图片';
   previewDescription.textContent = image.description || '暂无图片说明';
@@ -255,7 +255,7 @@ function renderImages() {
         </label>
       </div>
       <div class="image-thumb-wrap image-clickable-zone" data-action="preview" data-image-id="${image.id}">
-        <img src="${API_BASE_URL}${image.url}" alt="${image.name}" class="image-thumb" loading="lazy" decoding="async">
+        <img src="${API_BASE_URL}${image.thumbUrl || image.url}" alt="${image.name}" class="image-thumb" loading="lazy" decoding="async">
       </div>
       <div class="image-card-body">
         <div>
