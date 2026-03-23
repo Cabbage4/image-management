@@ -707,17 +707,33 @@ textarea { resize: vertical; min-height: 100px; }
     font-weight: 600;
 }
 .folder-item.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.folder-item-side-actions {
+.folder-item-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
+    align-items: center;
+}
+.folder-item-actions .tiny-btn {
+    padding: 8px 10px;
+    min-width: 48px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1;
 }
 .folder-download-btn,
 .folder-delete-btn {
-    width: 42px;
     border: 1px solid var(--line);
     background: #fff;
-    border-radius: 14px;
     cursor: pointer;
+}
+.folder-delete-btn {
+    color: var(--danger);
+    border-color: rgba(214, 61, 56, 0.25);
+}
+.folder-delete-btn:hover {
+    background: rgba(214, 61, 56, 0.08);
+}
+.folder-download-btn:hover {
+    background: var(--surface-soft);
 }
 
 .compact-upload-panel {

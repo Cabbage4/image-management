@@ -136,7 +136,15 @@ function renderFolders() {
       .filter((folder) => folder.id !== 'all-assets')
       .map((folder) => ({ ...folder, imageCount: normalizedCounts[folder.id] ?? folder.imageCount ?? 0 }))
       .filter((folder) => !folderKeyword || folderDisplayName(folder).toLowerCase().includes(folderKeyword))
-      .map((folder) => `<div class="folder-item-row"><button type="button" class="folder-item ${selectedFolder === folder.id ? 'active' : ''}" data-folder-id="${folder.id}">${folderDisplayName(folder)} · ${folder.imageCount ?? 0}</button><span class="folder-item-placeholder"></span></div>`)
+      .map((folder) => `
+        <div class="folder-item-row">
+          <button type="button" class="folder-item ${selectedFolder === folder.id ? 'active' : ''}" data-folder-id="${folder.id}">${folderDisplayName(folder)} · ${folder.imageCount ?? 0}</button>
+          <div class="folder-item-actions">
+            <button type="button" class="ghost-button tiny-btn folder-download-btn" data-action="download" data-folder-id="${folder.id}" title="下载文件夹">下载</button>
+            <button type="button" class="ghost-button tiny-btn danger-btn folder-delete-btn" data-action="delete" data-folder-id="${folder.id}" title="删除文件夹">删除</button>
+          </div>
+        </div>
+      `)
   ];
 
   folderList.innerHTML = rows.join('');
@@ -425,7 +433,40 @@ previewDownloadButton?.addEventListener('click', () => {
 fileInput?.addEventListener('change', renderPreview);
 searchInput?.addEventListener('input', () => { currentPage = 1; renderImages(); });
 folderSearchInput?.addEventListener('input', renderFolders);
-folderList?.addEventListener('click', (event) => {
+async function deleteFolder(folderId) {
+  if (!folderId) return;
+  const folder = folders.find((item) => item.id === folderId);
+  const ok = confirm(`确认删除文件夹「${folderDisplayName(folder)}」吗？该文件夹会进入回收站。`);
+  if (!ok) return;
+  const response = await fetch(`${API_BASE_URL}/api/folders/${folderId}`, { method: 'DELETE' });
+  const data = await response.json();
+  if (!response.ok) return alert(data.message || '删除文件夹失败');
+  if (selectedFolder === folderId) selectedFolder = 'all';
+  await Promise.all([loadFolders(), loadImages()]);
+}
+
+function downloadFolder(folderId) {
+  if (!folderId) return;
+  const link = document.createElement('a');
+  link.href = `${API_BASE_URL}/api/folders/${folderId}/download`;
+  link.click();
+}
+
+folderList?.addEventListener('click', async (event) => {
+  const actionButton = event.target.closest('[data-action]');
+  if (actionButton) {
+    const action = actionButton.dataset.action;
+    const folderId = actionButton.dataset.folderId;
+    if (action === 'download') {
+      downloadFolder(folderId);
+      return;
+    }
+    if (action === 'delete') {
+      await deleteFolder(folderId);
+      return;
+    }
+  }
+
   const button = event.target.closest('.folder-item');
   if (!button) return;
   const folderId = button.dataset.folderId;
