@@ -52,7 +52,7 @@ let images = [];
 let selectedFolder = 'all';
 let currentPreviewIndex = -1;
 let currentPage = 1;
-const pageSize = 32;
+const pageSize = 8;
 let selectedImages = new Set();
 
 function getImageById(imageId) {
