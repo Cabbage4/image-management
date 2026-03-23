@@ -209,7 +209,7 @@ function renderImages() {
   if (currentPage > totalPages) currentPage = totalPages;
   const pageList = list.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   galleryGrid.innerHTML = '';
-  galleryPaginationInfo.textContent = `共 ${list.length} 张图片`;
+  galleryPaginationInfo.textContent = `共 ${list.length} 张图片 · 每页 8 张`;
   galleryPageIndicator.textContent = `第 ${currentPage} / ${totalPages} 页`;
   galleryPrevPage.disabled = currentPage <= 1;
   galleryNextPage.disabled = currentPage >= totalPages;

@@ -1477,10 +1477,14 @@ textarea { resize: vertical; min-height: 100px; }
         grid-template-columns: 1fr;
     }
     .gallery-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
     .auth-form-pane,
     .auth-visual { padding: 40px 28px; }
+}
+
+@media (max-width: 900px) {
+    .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
