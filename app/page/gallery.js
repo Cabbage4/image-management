@@ -148,14 +148,21 @@ function renderFolders() {
   }, {});
 
   const rows = [
-    `<div class="folder-item-row"><button type="button" class="folder-item ${selectedFolder === 'all' ? 'active' : ''}" data-folder-id="all">全部图片</button><span class="folder-item-placeholder"></span></div>`,
+    `<div class="folder-all-row"><button type="button" class="folder-item folder-item-all ${selectedFolder === 'all' ? 'active' : ''}" data-folder-id="all">全部图片</button></div>`,
+    '<div class="folder-list-divider"></div>',
     ...folders
       .filter((folder) => folder.id !== 'all-assets')
       .map((folder) => ({ ...folder, imageCount: normalizedCounts[folder.id] ?? folder.imageCount ?? 0 }))
       .filter((folder) => !folderKeyword || folderDisplayName(folder).toLowerCase().includes(folderKeyword))
       .map((folder) => `
         <div class="folder-item-row">
-          <button type="button" class="folder-item ${selectedFolder === folder.id ? 'active' : ''}" data-folder-id="${folder.id}">${folderDisplayName(folder)} · ${folder.imageCount ?? 0}</button>
+          <button type="button" class="folder-item ${selectedFolder === folder.id ? 'active' : ''}" data-folder-id="${folder.id}">
+            <span class="folder-item-main">
+              <span class="folder-item-icon">📁</span>
+              <span class="folder-item-name">${folderDisplayName(folder)}</span>
+              <span class="folder-item-count">${folder.imageCount ?? 0}</span>
+            </span>
+          </button>
           <div class="folder-item-actions">
             <button type="button" class="ghost-button tiny-btn folder-download-btn" data-action="download" data-folder-id="${folder.id}" title="下载文件夹">下载</button>
             <button type="button" class="ghost-button tiny-btn danger-btn folder-delete-btn" data-action="delete" data-folder-id="${folder.id}" title="删除文件夹">删除</button>

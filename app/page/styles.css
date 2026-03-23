@@ -718,67 +718,138 @@ textarea { resize: vertical; min-height: 100px; }
 }
 .compact-form { margin-top: 16px; }
 
+.gallery-sidebar #folder-form {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+}
+.gallery-sidebar #folder-form .form-group.full {
+    margin-bottom: 10px;
+}
+.gallery-sidebar #folder-form .secondary-button {
+    width: 100%;
+    min-height: 38px;
+    border-radius: 10px;
+}
+
 .folder-list {
     display: grid;
-    gap: 8px;
+    gap: 10px;
     min-height: 80px;
 }
-.folder-search-shell { margin-bottom: 10px; }
+.folder-search-shell { margin-bottom: 12px; }
 .folder-list-scroll {
-    max-height: 380px;
+    max-height: 420px;
     overflow-y: auto;
     padding-right: 4px;
 }
-.folder-item-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: stretch; }
-.folder-item-placeholder { display: block; width: 42px; }
+.folder-all-row {
+    display: flex;
+    align-items: center;
+}
+.folder-list-divider {
+    height: 1px;
+    background: var(--line);
+    margin: 4px 0 2px;
+}
+.folder-item-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+}
 .folder-item {
-    border: 1px solid var(--line);
-    background: linear-gradient(180deg, #ffffff, #f8fafe);
+    border: 1px solid #e4e8f1;
+    background: #fff;
     border-radius: 12px;
     padding: 10px 12px;
     text-align: left;
     cursor: pointer;
     color: var(--text);
     font-weight: 600;
+    font-size: 14px;
+    min-height: 44px;
+    position: relative;
+}
+.folder-item-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+.folder-item-icon {
+    font-size: 14px;
+    opacity: 0.75;
+}
+.folder-item-name {
+    font-weight: 700;
+}
+.folder-item-count {
+    padding: 2px 7px;
+    border-radius: 7px;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+}
+.folder-item-all {
+    border-radius: 999px;
+    padding: 8px 14px;
+    min-height: 36px;
     font-size: 13px;
+    background: #f6f7f9;
 }
 .folder-item:hover {
-    border-color: rgba(79, 110, 247, 0.28);
-    transform: translateY(-1px);
+    border-color: #cfd8eb;
 }
 .folder-item.active {
-    background: linear-gradient(180deg, #5c79fb, #4668f7);
-    color: #fff;
-    border-color: transparent;
-    box-shadow: 0 10px 20px rgba(79, 110, 247, 0.3);
+    border-color: #93c5fd;
+    box-shadow: inset 3px 0 0 #3b82f6;
+    background: #ffffff;
+    color: #111827;
+}
+.folder-item.active .folder-item-icon {
+    opacity: 1;
+}
+.folder-item.active .folder-item-count {
+    background: #eaf2ff;
+    color: #2563eb;
+}
+.folder-item-all.active {
+    box-shadow: none;
+    background: #eef2ff;
+    color: #1d4ed8;
+    border-color: #dbe5ff;
 }
 .folder-item-actions {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
 }
 .folder-item-actions .tiny-btn {
-    padding: 8px 10px;
-    min-width: 48px;
-    border-radius: 10px;
+    padding: 6px 10px;
+    min-width: 46px;
+    border-radius: 8px;
     font-size: 12px;
     line-height: 1;
 }
 .folder-download-btn,
 .folder-delete-btn {
-    border: 1px solid var(--line);
+    border: 1px solid #e5e7eb;
     background: #fff;
     cursor: pointer;
 }
 .folder-delete-btn {
-    color: var(--danger);
-    border-color: rgba(214, 61, 56, 0.25);
+    color: #e11d48;
+    border-color: #f4c8d3;
+    background: #fff;
 }
 .folder-delete-btn:hover {
-    background: rgba(214, 61, 56, 0.08);
+    background: #fff1f2;
 }
 .folder-download-btn:hover {
-    background: var(--surface-soft);
+    background: #f8fafc;
 }
 
 .compact-upload-panel {
