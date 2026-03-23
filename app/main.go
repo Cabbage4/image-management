@@ -763,6 +763,63 @@ func foldersPostHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "文件夹创建成功"})
 }
 
+func foldersReorderHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonError(w, http.StatusMethodNotAllowed, "请求方法不支持")
+		return
+	}
+	var payload struct {
+		IDs []string `json:"ids"`
+	}
+	if err := decodeJSON(r, &payload); err != nil {
+		jsonError(w, http.StatusBadRequest, "请求体格式错误")
+		return
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(state.Folders) == 0 {
+		jsonError(w, http.StatusBadRequest, "暂无可排序文件夹")
+		return
+	}
+	folderMap := make(map[string]Folder, len(state.Folders))
+	for _, folder := range state.Folders {
+		if folder.ID != "all-assets" {
+			folderMap[folder.ID] = folder
+		}
+	}
+	if len(payload.IDs) != len(folderMap) {
+		jsonError(w, http.StatusBadRequest, "排序列表不完整")
+		return
+	}
+	seen := make(map[string]struct{}, len(payload.IDs))
+	reordered := make([]Folder, 0, len(state.Folders))
+	reordered = append(reordered, Folder{ID: "all-assets", Name: "未分类"})
+	for _, id := range payload.IDs {
+		if id == "all-assets" {
+			jsonError(w, http.StatusBadRequest, "默认文件夹不参与拖拽排序")
+			return
+		}
+		if _, ok := seen[id]; ok {
+			jsonError(w, http.StatusBadRequest, "排序列表存在重复项")
+			return
+		}
+		folder, ok := folderMap[id]
+		if !ok {
+			jsonError(w, http.StatusBadRequest, "排序列表包含未知文件夹")
+			return
+		}
+		seen[id] = struct{}{}
+		reordered = append(reordered, folder)
+	}
+	state.Folders = reordered
+	addActivityWithRequest(r, "排序文件夹", fmt.Sprintf("调整了 %d 个文件夹顺序", len(payload.IDs)))
+	if err := saveStore(); err != nil {
+		jsonError(w, http.StatusInternalServerError, "文件夹排序保存失败")
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "文件夹排序已更新"})
+}
+
 func foldersDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	folderID := strings.TrimPrefix(r.URL.Path, "/api/folders/")
 	if folderID == "" {
@@ -1684,6 +1741,7 @@ func main() {
 	http.HandleFunc("/api/team", withCORS(teamGetHandler))
 	http.HandleFunc("/api/team/invite", withCORS(teamInviteHandler))
 	http.HandleFunc("/api/folders", withCORS(foldersHandler))
+	http.HandleFunc("/api/folders/reorder", withCORS(foldersReorderHandler))
 	http.HandleFunc("/api/folders/", withCORS(folderItemHandler))
 	http.HandleFunc("/api/images", withCORS(imagesGetHandler))
 	http.HandleFunc("/api/images/upload", withCORS(imagesUploadHandler))

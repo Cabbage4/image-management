@@ -59,6 +59,7 @@ let imagesVersion = 0;
 let filteredCacheKey = '';
 let filteredCache = [];
 let currentPageImageMap = new Map();
+let draggedFolderId = null;
 
 function getImageById(imageId) {
   return images.map(normalizedImage).find((image) => image.id === imageId) || null;
@@ -173,10 +174,10 @@ function renderFolders() {
       .map((folder) => ({ ...folder, imageCount: normalizedCounts[folder.id] ?? folder.imageCount ?? 0 }))
       .filter((folder) => !folderKeyword || folderDisplayName(folder).toLowerCase().includes(folderKeyword))
       .map((folder) => `
-        <div class="folder-item-row">
+        <div class="folder-item-row" data-folder-row="${folder.id}" draggable="true">
           <button type="button" class="folder-item ${selectedFolder === folder.id ? 'active' : ''}" data-folder-id="${folder.id}">
             <span class="folder-item-main">
-              <span class="folder-item-icon">📁</span>
+              <span class="folder-item-icon">☰</span>
               <span class="folder-item-name">${folderDisplayName(folder)}</span>
               <span class="folder-item-count">${folder.imageCount ?? 0}</span>
             </span>
@@ -511,6 +512,28 @@ galleryGrid?.addEventListener('click', async (event) => {
 fileInput?.addEventListener('change', renderPreview);
 searchInput?.addEventListener('input', () => { currentPage = 1; invalidateFilteredCache(); renderImages(); });
 folderSearchInput?.addEventListener('input', renderFolders);
+async function persistFolderOrder() {
+  const rows = Array.from(folderList?.querySelectorAll('[data-folder-row]') || []);
+  const ids = rows.map((row) => row.dataset.folderRow).filter(Boolean);
+  if (!ids.length) return;
+  const response = await fetch(`${API_BASE_URL}/api/folders/reorder`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids })
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    alert(data.message || '文件夹排序保存失败');
+    await loadFolders();
+    return;
+  }
+  const folderMap = new Map(folders.map((folder) => [folder.id, folder]));
+  folders = [{ id: 'all-assets', name: '未分类', imageCount: folderMap.get('all-assets')?.imageCount || 0 }]
+    .concat(ids.map((id) => folderMap.get(id)).filter(Boolean));
+  rebuildFolderNameMap();
+  renderFolders();
+}
+
 async function deleteFolder(folderId) {
   if (!folderId) return;
   const folder = folders.find((item) => item.id === folderId);
@@ -529,6 +552,46 @@ function downloadFolder(folderId) {
   link.href = `${API_BASE_URL}/api/folders/${folderId}/download`;
   link.click();
 }
+
+folderList?.addEventListener('dragstart', (event) => {
+  const row = event.target.closest('[data-folder-row]');
+  if (!row) return;
+  draggedFolderId = row.dataset.folderRow;
+  row.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+});
+
+folderList?.addEventListener('dragend', (event) => {
+  const row = event.target.closest('[data-folder-row]');
+  if (row) row.classList.remove('dragging');
+  folderList.querySelectorAll('[data-folder-row]').forEach((item) => item.classList.remove('drop-target'));
+  draggedFolderId = null;
+});
+
+folderList?.addEventListener('dragover', (event) => {
+  const targetRow = event.target.closest('[data-folder-row]');
+  if (!draggedFolderId || !targetRow) return;
+  event.preventDefault();
+  folderList.querySelectorAll('[data-folder-row]').forEach((item) => item.classList.remove('drop-target'));
+  targetRow.classList.add('drop-target');
+});
+
+folderList?.addEventListener('drop', async (event) => {
+  const targetRow = event.target.closest('[data-folder-row]');
+  if (!draggedFolderId || !targetRow) return;
+  event.preventDefault();
+  const sourceRow = folderList.querySelector(`[data-folder-row="${draggedFolderId}"]`);
+  if (!sourceRow || sourceRow === targetRow) return;
+  const sourceRect = sourceRow.getBoundingClientRect();
+  const targetRect = targetRow.getBoundingClientRect();
+  if (sourceRect.top < targetRect.top) {
+    targetRow.after(sourceRow);
+  } else {
+    targetRow.before(sourceRow);
+  }
+  folderList.querySelectorAll('[data-folder-row]').forEach((item) => item.classList.remove('drop-target'));
+  await persistFolderOrder();
+});
 
 folderList?.addEventListener('click', async (event) => {
   const actionButton = event.target.closest('[data-action]');
