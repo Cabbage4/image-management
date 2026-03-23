@@ -49,11 +49,15 @@ const batchDeleteButton = document.getElementById('batch-delete-button');
 
 let folders = [];
 let images = [];
+let folderNameMap = new Map();
 let selectedFolder = 'all';
 let currentPreviewIndex = -1;
 let currentPage = 1;
 const pageSize = 8;
 let selectedImages = new Set();
+let imagesVersion = 0;
+let filteredCacheKey = '';
+let filteredCache = [];
 
 function getImageById(imageId) {
   return images.map(normalizedImage).find((image) => image.id === imageId) || null;
@@ -100,25 +104,38 @@ function populateFolderSelect(selectEl, selectedValue = '') {
   });
 }
 
+function invalidateFilteredCache() {
+  filteredCacheKey = '';
+}
+
+function rebuildFolderNameMap() {
+  folderNameMap = new Map(folders.map((folder) => [folder.id, folderDisplayName(folder)]));
+}
+
 function normalizedImage(image) {
-  const knownFolder = folders.find((folder) => folder.id === image.folderId);
+  const folderName = folderNameMap.get(image.folderId);
   return {
     ...image,
-    folderId: knownFolder ? image.folderId : 'unclassified',
-    folderName: knownFolder ? folderDisplayName(knownFolder) : '未分类',
+    folderId: folderName ? image.folderId : 'unclassified',
+    folderName: folderName || '未分类',
     sizeLabel: image.size ? `${Math.ceil(image.size / 1024)} KB` : '--'
   };
 }
 
 function filteredImages() {
   const keyword = (searchInput?.value || '').trim().toLowerCase();
-  return images
+  const cacheKey = `${imagesVersion}|${selectedFolder}|${keyword}`;
+  if (cacheKey === filteredCacheKey) return filteredCache;
+
+  filteredCache = images
     .map(normalizedImage)
     .filter((image) => {
       const matchFolder = selectedFolder === 'all' || image.folderId === selectedFolder;
       const haystack = `${image.name || ''} ${image.description || ''} ${(image.tags || []).join(' ')}`.toLowerCase();
       return matchFolder && (!keyword || haystack.includes(keyword));
     });
+  filteredCacheKey = cacheKey;
+  return filteredCache;
 }
 
 function updateBatchToolbar() {
@@ -302,6 +319,8 @@ async function loadFolders() {
   const response = await fetch(`${API_BASE_URL}/api/folders`);
   const data = await response.json();
   folders = data.folders || [];
+  rebuildFolderNameMap();
+  invalidateFilteredCache();
   renderFolders();
 }
 
@@ -309,6 +328,8 @@ async function loadImages() {
   const response = await fetch(`${API_BASE_URL}/api/images`);
   const data = await response.json();
   images = data.images || [];
+  imagesVersion += 1;
+  invalidateFilteredCache();
   renderImages();
 }
 
@@ -465,7 +486,7 @@ previewDownloadButton?.addEventListener('click', () => {
 });
 
 fileInput?.addEventListener('change', renderPreview);
-searchInput?.addEventListener('input', () => { currentPage = 1; renderImages(); });
+searchInput?.addEventListener('input', () => { currentPage = 1; invalidateFilteredCache(); renderImages(); });
 folderSearchInput?.addEventListener('input', renderFolders);
 async function deleteFolder(folderId) {
   if (!folderId) return;
@@ -511,6 +532,7 @@ folderList?.addEventListener('click', async (event) => {
     selectedFolder = folderId;
     if (folderSelect) folderSelect.value = folderId;
   }
+  invalidateFilteredCache();
   renderFolders();
   renderImages();
 });
@@ -520,7 +542,10 @@ galleryNextPage?.addEventListener('click', () => { currentPage += 1; renderImage
 selectAllCheckbox?.addEventListener('change', (event) => {
   const list = filteredImages();
   list.forEach((image) => event.target.checked ? selectedImages.add(image.id) : selectedImages.delete(image.id));
-  renderImages();
+  document.querySelectorAll('.image-select-checkbox').forEach((checkbox) => {
+    checkbox.checked = event.target.checked;
+  });
+  updateBatchToolbar();
 });
 batchDownloadButton?.addEventListener('click', batchDownloadImages);
 batchMoveButton?.addEventListener('click', batchMoveImages);
