@@ -36,7 +36,8 @@ const (
 	defaultServerPort     = "8081"
 	publicPrefix          = "/uploads/"
 	thumbPrefix           = "/thumbs/"
-	thumbMaxWidth         = 720
+	thumbSmallMaxWidth    = 320
+	thumbMediumMaxWidth   = 720
 	thumbJPEGQuality      = 70
 )
 
@@ -74,7 +75,9 @@ type ImageItem struct {
 	OriginalName string   `json:"originalName"`
 	Filename     string   `json:"filename"`
 	URL          string   `json:"url"`
-	ThumbURL     string   `json:"thumbUrl,omitempty"`
+	ThumbURL       string `json:"thumbUrl,omitempty"`
+	ThumbSmallURL  string `json:"thumbSmallUrl,omitempty"`
+	ThumbMediumURL string `json:"thumbMediumUrl,omitempty"`
 	FolderID     string   `json:"folderId"`
 	Description  string   `json:"description,omitempty"`
 	Tags         []string `json:"tags,omitempty"`
@@ -290,7 +293,10 @@ func saveStore() error {
 
 func ensureThumbnailsForExistingImagesUnsafe() {
 	for i := range state.Images {
-		if state.Images[i].ThumbURL != "" {
+		if state.Images[i].ThumbSmallURL != "" && state.Images[i].ThumbMediumURL != "" {
+			if state.Images[i].ThumbURL == "" {
+				state.Images[i].ThumbURL = state.Images[i].ThumbMediumURL
+			}
 			continue
 		}
 		srcPath := filepath.Join(uploadsDir, state.Images[i].Filename)
@@ -298,15 +304,23 @@ func ensureThumbnailsForExistingImagesUnsafe() {
 		if err != nil {
 			continue
 		}
-		thumbName := thumbnailFilename(state.Images[i].Filename)
-		thumbPath := filepath.Join(thumbsDir, thumbName)
-		if err := buildThumbnailFromBytes(source, thumbPath); err != nil {
-			continue
+		thumbURL, smallURL, mediumURL := makeThumbURLs(source, state.Images[i].Filename)
+		if thumbURL == "" && state.Images[i].ThumbURL != "" {
+			thumbURL = state.Images[i].ThumbURL
 		}
-		state.Images[i].ThumbURL = thumbPrefix + thumbName
+		state.Images[i].ThumbURL = thumbURL
+		if smallURL != "" {
+			state.Images[i].ThumbSmallURL = smallURL
+		}
+		if mediumURL != "" {
+			state.Images[i].ThumbMediumURL = mediumURL
+		}
 	}
 	for i := range state.TrashImages {
-		if state.TrashImages[i].ThumbURL != "" {
+		if state.TrashImages[i].ThumbSmallURL != "" && state.TrashImages[i].ThumbMediumURL != "" {
+			if state.TrashImages[i].ThumbURL == "" {
+				state.TrashImages[i].ThumbURL = state.TrashImages[i].ThumbMediumURL
+			}
 			continue
 		}
 		srcPath := filepath.Join(trashUploadsDir, state.TrashImages[i].Filename)
@@ -314,12 +328,17 @@ func ensureThumbnailsForExistingImagesUnsafe() {
 		if err != nil {
 			continue
 		}
-		thumbName := thumbnailFilename(state.TrashImages[i].Filename)
-		thumbPath := filepath.Join(thumbsDir, thumbName)
-		if err := buildThumbnailFromBytes(source, thumbPath); err != nil {
-			continue
+		thumbURL, smallURL, mediumURL := makeThumbURLs(source, state.TrashImages[i].Filename)
+		if thumbURL == "" && state.TrashImages[i].ThumbURL != "" {
+			thumbURL = state.TrashImages[i].ThumbURL
 		}
-		state.TrashImages[i].ThumbURL = thumbPrefix + thumbName
+		state.TrashImages[i].ThumbURL = thumbURL
+		if smallURL != "" {
+			state.TrashImages[i].ThumbSmallURL = smallURL
+		}
+		if mediumURL != "" {
+			state.TrashImages[i].ThumbMediumURL = mediumURL
+		}
 	}
 }
 
@@ -959,16 +978,16 @@ func streamZipDownload(w http.ResponseWriter, zipFilename string, images []Image
 	}
 }
 
-func thumbnailFilename(filename string) string {
+func thumbnailFilename(filename, size string) string {
 	ext := filepath.Ext(filename)
 	name := strings.TrimSuffix(filename, ext)
 	if name == "" {
 		name = imageID()
 	}
-	return name + "_thumb.jpg"
+	return fmt.Sprintf("%s_%s.jpg", name, size)
 }
 
-func buildThumbnailFromBytes(source []byte, dstPath string) error {
+func buildThumbnailFromBytes(source []byte, dstPath string, maxWidth int) error {
 	img, _, err := image.Decode(bytes.NewReader(source))
 	if err != nil {
 		return err
@@ -981,9 +1000,9 @@ func buildThumbnailFromBytes(source []byte, dstPath string) error {
 	}
 	targetW := w
 	targetH := h
-	if w > thumbMaxWidth {
-		targetW = thumbMaxWidth
-		targetH = int(float64(h) * (float64(thumbMaxWidth) / float64(w)))
+	if maxWidth > 0 && w > maxWidth {
+		targetW = maxWidth
+		targetH = int(float64(h) * (float64(maxWidth) / float64(w)))
 		if targetH < 1 {
 			targetH = 1
 		}
@@ -1002,7 +1021,28 @@ func buildThumbnailFromBytes(source []byte, dstPath string) error {
 	return jpeg.Encode(out, dst, &jpeg.Options{Quality: thumbJPEGQuality})
 }
 
-func saveUploadedFile(file multipart.File, header *multipart.FileHeader) (string, string, string, int64, error) {
+func makeThumbURLs(source []byte, filename string) (string, string, string) {
+	smallName := thumbnailFilename(filename, "sm")
+	mediumName := thumbnailFilename(filename, "md")
+	smallPath := filepath.Join(thumbsDir, smallName)
+	mediumPath := filepath.Join(thumbsDir, mediumName)
+
+	smallURL := ""
+	mediumURL := ""
+	if err := buildThumbnailFromBytes(source, smallPath, thumbSmallMaxWidth); err == nil {
+		smallURL = thumbPrefix + smallName
+	}
+	if err := buildThumbnailFromBytes(source, mediumPath, thumbMediumMaxWidth); err == nil {
+		mediumURL = thumbPrefix + mediumName
+	}
+	thumbURL := mediumURL
+	if thumbURL == "" {
+		thumbURL = smallURL
+	}
+	return thumbURL, smallURL, mediumURL
+}
+
+func saveUploadedFile(file multipart.File, header *multipart.FileHeader) (string, string, string, string, string, int64, error) {
 	defer file.Close()
 	id := imageID()
 	ext := strings.ToLower(filepath.Ext(header.Filename))
@@ -1013,53 +1053,40 @@ func saveUploadedFile(file multipart.File, header *multipart.FileHeader) (string
 	fullpath := filepath.Join(uploadsDir, filename)
 	out, err := os.Create(fullpath)
 	if err != nil {
-		return "", "", "", 0, err
+		return "", "", "", "", "", 0, err
 	}
 	data, err := io.ReadAll(file)
 	if err != nil {
 		out.Close()
-		return "", "", "", 0, err
+		return "", "", "", "", "", 0, err
 	}
 	if _, err := out.Write(data); err != nil {
 		out.Close()
-		return "", "", "", 0, err
+		return "", "", "", "", "", 0, err
 	}
 	out.Close()
 
-	thumbName := thumbnailFilename(filename)
-	thumbPath := filepath.Join(thumbsDir, thumbName)
-	if err := buildThumbnailFromBytes(data, thumbPath); err != nil {
-		thumbName = ""
-	}
-	thumbURL := ""
-	if thumbName != "" {
-		thumbURL = thumbPrefix + thumbName
-	}
-	return filename, publicPrefix + filename, thumbURL, int64(len(data)), nil
+	thumbURL, thumbSmallURL, thumbMediumURL := makeThumbURLs(data, filename)
+	return filename, publicPrefix + filename, thumbURL, thumbSmallURL, thumbMediumURL, int64(len(data)), nil
 }
 
-func saveBase64Image(dataURL, preferredName string) (string, string, string, int64, error) {
+func saveBase64Image(dataURL, preferredName string) (string, string, string, string, string, int64, error) {
 	parts := strings.SplitN(dataURL, ",", 2)
 	if len(parts) != 2 {
-		return "", "", "", 0, fmt.Errorf("invalid data url")
+		return "", "", "", "", "", 0, fmt.Errorf("invalid data url")
 	}
 	payload := parts[1]
 	bytesData, err := base64.StdEncoding.DecodeString(payload)
 	if err != nil {
-		return "", "", "", 0, err
+		return "", "", "", "", "", 0, err
 	}
 	filename := imageID() + ".png"
 	fullpath := filepath.Join(uploadsDir, filename)
 	if err := os.WriteFile(fullpath, bytesData, 0o644); err != nil {
-		return "", "", "", 0, err
+		return "", "", "", "", "", 0, err
 	}
-	thumbName := thumbnailFilename(filename)
-	thumbPath := filepath.Join(thumbsDir, thumbName)
-	thumbURL := ""
-	if err := buildThumbnailFromBytes(bytesData, thumbPath); err == nil {
-		thumbURL = thumbPrefix + thumbName
-	}
-	return filename, publicPrefix + filename, thumbURL, int64(len(bytesData)), nil
+	thumbURL, thumbSmallURL, thumbMediumURL := makeThumbURLs(bytesData, filename)
+	return filename, publicPrefix + filename, thumbURL, thumbSmallURL, thumbMediumURL, int64(len(bytesData)), nil
 }
 
 func imagesGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -1098,7 +1125,7 @@ func imagesUploadHandler(w http.ResponseWriter, r *http.Request) {
 			jsonError(w, http.StatusBadRequest, "请求体格式错误")
 			return
 		}
-		filename, url, thumbURL, size, err := saveBase64Image(payload.DataURL, payload.Name)
+		filename, url, thumbURL, thumbSmallURL, thumbMediumURL, size, err := saveBase64Image(payload.DataURL, payload.Name)
 		if err != nil {
 			jsonError(w, http.StatusInternalServerError, "保存编辑图片失败")
 			return
@@ -1118,7 +1145,7 @@ func imagesUploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		img := ImageItem{ID: imageID(), Name: sanitizeFilename(payload.Name), OriginalName: payload.OriginalName, Filename: filename, URL: url, ThumbURL: thumbURL, FolderID: folderID, Description: payload.Description, Tags: tags, UploadedAt: currentTimestamp(), Size: size}
+		img := ImageItem{ID: imageID(), Name: sanitizeFilename(payload.Name), OriginalName: payload.OriginalName, Filename: filename, URL: url, ThumbURL: thumbURL, ThumbSmallURL: thumbSmallURL, ThumbMediumURL: thumbMediumURL, FolderID: folderID, Description: payload.Description, Tags: tags, UploadedAt: currentTimestamp(), Size: size}
 		state.Images = append(state.Images, img)
 		for i := range state.Users {
 			state.Users[i].UploadCount = len(state.Images)
@@ -1169,7 +1196,7 @@ func imagesUploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildUploadedImageItem(file multipart.File, header *multipart.FileHeader, folderID, tagsRaw, description string) (ImageItem, error) {
-	filename, url, thumbURL, size, err := saveUploadedFile(file, header)
+	filename, url, thumbURL, thumbSmallURL, thumbMediumURL, size, err := saveUploadedFile(file, header)
 	if err != nil {
 		return ImageItem{}, err
 	}
@@ -1188,8 +1215,10 @@ func buildUploadedImageItem(file multipart.File, header *multipart.FileHeader, f
 		OriginalName: header.Filename,
 		Filename:     filename,
 		URL:          url,
-		ThumbURL:     thumbURL,
-		FolderID:     folderID,
+		ThumbURL:       thumbURL,
+		ThumbSmallURL:  thumbSmallURL,
+		ThumbMediumURL: thumbMediumURL,
+		FolderID:       folderID,
 		Description:  description,
 		Tags:         tags,
 		UploadedAt:   currentTimestamp(),
