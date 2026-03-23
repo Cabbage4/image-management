@@ -58,6 +58,7 @@ let selectedImages = new Set();
 let imagesVersion = 0;
 let filteredCacheKey = '';
 let filteredCache = [];
+let currentPageImageMap = new Map();
 
 function getImageById(imageId) {
   return images.map(normalizedImage).find((image) => image.id === imageId) || null;
@@ -232,6 +233,7 @@ function renderImages() {
   const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
   if (currentPage > totalPages) currentPage = totalPages;
   const pageList = list.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  currentPageImageMap = new Map(pageList.map((item) => [item.id, item]));
   galleryGrid.innerHTML = '';
   galleryPaginationInfo.textContent = `共 ${list.length} 张图片 · 每页 8 张`;
   galleryPageIndicator.textContent = `第 ${currentPage} / ${totalPages} 页`;
@@ -244,18 +246,16 @@ function renderImages() {
     return;
   }
 
-  pageList.forEach((image) => {
-    const card = document.createElement('article');
-    card.className = 'image-card';
-    card.innerHTML = `
+  galleryGrid.innerHTML = pageList.map((image) => `
+    <article class="image-card" data-image-id="${image.id}">
       <div class="image-card-check">
         <label class="checkbox-line">
-          <input type="checkbox" class="image-select-checkbox" ${selectedImages.has(image.id) ? 'checked' : ''}>
+          <input type="checkbox" class="image-select-checkbox" data-image-id="${image.id}" ${selectedImages.has(image.id) ? 'checked' : ''}>
           <span>选择</span>
         </label>
       </div>
-      <div class="image-thumb-wrap image-clickable-zone">
-        <img src="${API_BASE_URL}${image.url}" alt="${image.name}" class="image-thumb">
+      <div class="image-thumb-wrap image-clickable-zone" data-action="preview" data-image-id="${image.id}">
+        <img src="${API_BASE_URL}${image.url}" alt="${image.name}" class="image-thumb" loading="lazy" decoding="async">
       </div>
       <div class="image-card-body">
         <div>
@@ -269,35 +269,16 @@ function renderImages() {
         </div>
         <div class="tag-list">${(image.tags || []).map((tag) => `<span class="tag">#${tag}</span>`).join('')}</div>
         <div class="image-actions">
-          <button type="button" class="ghost-button image-action-btn preview-btn">预览</button>
-          <button type="button" class="ghost-button image-action-btn download-btn">下载</button>
-          <button type="button" class="ghost-button image-action-btn editor-btn">编辑器</button>
-          <button type="button" class="ghost-button image-action-btn edit-btn">信息</button>
-          <button type="button" class="ghost-button image-action-btn danger-btn delete-btn">删除</button>
+          <button type="button" class="ghost-button image-action-btn" data-action="preview" data-image-id="${image.id}">预览</button>
+          <button type="button" class="ghost-button image-action-btn" data-action="download" data-image-id="${image.id}">下载</button>
+          <button type="button" class="ghost-button image-action-btn" data-action="editor" data-image-id="${image.id}">编辑器</button>
+          <button type="button" class="ghost-button image-action-btn" data-action="edit" data-image-id="${image.id}">信息</button>
+          <button type="button" class="ghost-button image-action-btn danger-btn" data-action="delete" data-image-id="${image.id}">删除</button>
         </div>
       </div>
-    `;
-    card.querySelector('.image-select-checkbox')?.addEventListener('change', (event) => {
-      if (event.target.checked) selectedImages.add(image.id);
-      else selectedImages.delete(image.id);
-      updateBatchToolbar();
-    });
-    card.querySelector('.preview-btn')?.addEventListener('click', () => openPreviewModal(image.id));
-    card.querySelector('.image-clickable-zone')?.addEventListener('click', () => openPreviewModal(image.id));
-    card.querySelector('.download-btn')?.addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.href = `${API_BASE_URL}/api/images/${image.id}/download`;
-      link.click();
-    });
-    card.querySelector('.editor-btn')?.addEventListener('click', async () => {
-      const target = getImageById(image.id);
-      if (!target) return;
-      await imageEditor.openEditorModal(target);
-    });
-    card.querySelector('.edit-btn')?.addEventListener('click', () => openEditModal(image));
-    card.querySelector('.delete-btn')?.addEventListener('click', () => deleteImage(image.id));
-    galleryGrid.appendChild(card);
-  });
+    </article>
+  `).join('');
+
   updateBatchToolbar();
 }
 
@@ -483,6 +464,48 @@ previewDownloadButton?.addEventListener('click', () => {
   const link = document.createElement('a');
   link.href = `${API_BASE_URL}/api/images/${list[currentPreviewIndex].id}/download`;
   link.click();
+});
+
+galleryGrid?.addEventListener('change', (event) => {
+  const checkbox = event.target.closest('.image-select-checkbox');
+  if (!checkbox) return;
+  const imageId = checkbox.dataset.imageId;
+  if (!imageId) return;
+  if (checkbox.checked) selectedImages.add(imageId);
+  else selectedImages.delete(imageId);
+  updateBatchToolbar();
+});
+
+galleryGrid?.addEventListener('click', async (event) => {
+  const actionEl = event.target.closest('[data-action][data-image-id]');
+  if (!actionEl) return;
+  const action = actionEl.dataset.action;
+  const imageId = actionEl.dataset.imageId;
+  if (!imageId) return;
+  const image = currentPageImageMap.get(imageId) || getImageById(imageId);
+  if (!image) return;
+
+  if (action === 'preview') {
+    openPreviewModal(imageId);
+    return;
+  }
+  if (action === 'download') {
+    const link = document.createElement('a');
+    link.href = `${API_BASE_URL}/api/images/${imageId}/download`;
+    link.click();
+    return;
+  }
+  if (action === 'editor') {
+    await imageEditor.openEditorModal(image);
+    return;
+  }
+  if (action === 'edit') {
+    openEditModal(image);
+    return;
+  }
+  if (action === 'delete') {
+    await deleteImage(imageId);
+  }
 });
 
 fileInput?.addEventListener('change', renderPreview);

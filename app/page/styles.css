@@ -978,6 +978,8 @@ textarea { resize: vertical; min-height: 100px; }
     border: 1px solid rgba(230, 234, 242, 0.9);
     background: #fff;
     box-shadow: var(--shadow-card);
+    content-visibility: auto;
+    contain-intrinsic-size: 340px;
 }
 .image-card:hover {
     transform: translateY(-2px);
