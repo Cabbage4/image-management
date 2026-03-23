@@ -270,7 +270,7 @@ function renderImages() {
         <div class="tag-list">${(image.tags || []).map((tag) => `<span class="tag">#${tag}</span>`).join('')}</div>
         <div class="image-actions">
           <button type="button" class="ghost-button image-action-btn" data-action="preview" data-image-id="${image.id}">预览</button>
-          <button type="button" class="ghost-button image-action-btn" data-action="download" data-image-id="${image.id}">下载</button>
+          <button type="button" class="ghost-button image-action-btn" data-action="download" data-image-id="${image.id}">下载原图</button>
           <button type="button" class="ghost-button image-action-btn" data-action="editor" data-image-id="${image.id}">编辑器</button>
           <button type="button" class="ghost-button image-action-btn" data-action="edit" data-image-id="${image.id}">信息</button>
           <button type="button" class="ghost-button image-action-btn danger-btn" data-action="delete" data-image-id="${image.id}">删除</button>
